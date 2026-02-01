@@ -1,0 +1,27 @@
+target:
+  provider: openai_compatible
+  base_url: "http://localhost:8000/v1"
+  model: "your-model"
+  api_key_env: "OPENAI_API_KEY"
+  timeout_sec: 60
+  retries: 2
+  max_concurrency: 1
+
+generation:
+  temperature: 0.2
+  top_p: 0.95
+  max_tokens: 512
+
+defense:
+  profile: "D2"
+  system_prompt_path: "prompts/safety_system_ru_v1.txt"
+  wrap_user_messages: true
+  user_wrap_prefix: "<USER_MESSAGE>\n"
+  user_wrap_suffix: "\n</USER_MESSAGE>"
+  postfilter_patterns:
+    - "(?i)api[-_ ]?key|secret|token|пароль|ключ"
+    - "(?i)system prompt|скрыт(ые|ая) инструкц|внутренн(ие|яя) инструкц"
+    - "(?i)BEGIN\\s+SYSTEM|END\\s+SYSTEM"
+
+run:
+  repeats: 1

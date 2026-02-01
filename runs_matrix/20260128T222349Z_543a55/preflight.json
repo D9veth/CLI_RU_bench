@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "provider": "openai_compatible",
+  "base_url": "http://localhost:1234/v1",
+  "model": "google/gemma-3-12b",
+  "latency_ms": 550.0912910792977,
+  "error": null,
+  "raw_sample": {
+    "content": "Pong! 😉 \n\nJust responding",
+    "usage": {
+      "prompt_tokens": 10,
+      "completion_tokens": 7,
+      "total_tokens": 17
+    }
+  }
+}

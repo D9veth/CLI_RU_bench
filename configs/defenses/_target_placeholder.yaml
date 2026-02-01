@@ -1,0 +1,8 @@
+target:
+  provider: openai_compatible
+  base_url: "http://localhost:8000/v1"
+  model: "your-model"
+  api_key_env: "OPENAI_API_KEY"
+  timeout_sec: 60
+  retries: 2
+  max_concurrency: 1

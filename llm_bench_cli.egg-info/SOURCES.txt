@@ -8,6 +8,7 @@ bench/core/metrics.py
 bench/core/preflight.py
 bench/core/runner.py
 bench/core/storage.py
+bench/core/utility.py
 bench/core/model/factory.py
 bench/core/model/openai_compatible.py
 llm_bench_cli.egg-info/PKG-INFO

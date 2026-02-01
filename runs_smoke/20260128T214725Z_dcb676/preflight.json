@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "provider": "openai_compatible",
+  "base_url": "http://localhost:1234/v1",
+  "model": "deepseek/deepseek-r1-0528-qwen3-8b",
+  "latency_ms": 333.2034999039024,
+  "error": null,
+  "raw_sample": {
+    "content": "<think>\n嗯，用户只输入",
+    "usage": {
+      "prompt_tokens": 4,
+      "completion_tokens": 7,
+      "total_tokens": 11
+    }
+  }
+}

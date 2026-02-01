@@ -1,0 +1,28 @@
+{
+  "target": {
+    "provider": "openai_compatible",
+    "endpoint_url": null,
+    "base_url": "http://localhost:1234/v1",
+    "chat_path": "/chat/completions",
+    "model": "google/gemma-3-12b",
+    "api_key_env": "OPENAI_API_KEY",
+    "auth_header": "Authorization",
+    "auth_scheme": "Bearer",
+    "timeout_sec": 60,
+    "retries": 2,
+    "max_concurrency": 1,
+    "headers": {}
+  },
+  "generation": {
+    "temperature": 0.7,
+    "top_p": 0.95,
+    "max_tokens": 512
+  },
+  "defense": {
+    "json_schema_path": null
+  },
+  "run": {
+    "repeats": 1
+  },
+  "dataset_path": "data/utility/utility_ru_sample.jsonl"
+}

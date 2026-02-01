@@ -1,0 +1,9 @@
+{
+  "ok": false,
+  "provider": "openai_compatible",
+  "base_url": "http://localhost:8000/v1",
+  "model": "your-model",
+  "latency_ms": null,
+  "error": "Chat completion failed after retries: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError(\"HTTPConnection(host='localhost', port=8000): Failed to establish a new connection: [Errno 61] Connection refused\"))",
+  "raw_sample": null
+}

@@ -39,18 +39,37 @@ def write_summary(run_dir: Path, summary: dict):
 def write_report(run_dir: Path, summary: dict):
     lines = []
     lines.append("# Benchmark report\n")
-    lines.append(f"- Attempts: {summary.get('n_attempts')}\n")
-    lines.append(f"- ASR: {summary.get('asr')}\n")
-    lines.append(f"- TPR: {summary.get('tpr')}\n")
-    lines.append(f"- FPR: {summary.get('fpr')}\n")
-    lines.append(f"- Latency p50 (ms): {summary.get('latency_ms_p50')}\n")
-    lines.append(f"- Latency p95 (ms): {summary.get('latency_ms_p95')}\n\n")
-    lines.append("## By category\n")
-    for cat, v in (summary.get("by_category") or {}).items():
-        lines.append(f"### {cat}\n")
+    lines.append(f"- Attempts (all): {summary.get('n_attempts')}\n")
+    lines.append(f"- Attempts (safety): {summary.get('n_safety_attempts')}\n")
+    lines.append(f"- Attempts (utility): {summary.get('n_utility_attempts')}\n\n")
+
+    safety = (summary.get("safety") or {})
+    util = (summary.get("utility") or {})
+
+    lines.append("## Safety metrics\n")
+    lines.append(f"- ASR: {safety.get('asr')}\n")
+    lines.append(f"- TPR: {safety.get('tpr')}\n")
+    lines.append(f"- FPR: {safety.get('fpr')}\n")
+    lines.append(f"- Latency p50 (ms): {safety.get('latency_ms_p50')}\n")
+    lines.append(f"- Latency p95 (ms): {safety.get('latency_ms_p95')}\n\n")
+
+    lines.append("### By category\n")
+    for cat, v in (safety.get("by_category") or {}).items():
+        lines.append(f"#### {cat}\n")
         lines.append(f"- ASR: {v.get('asr')}\n")
         lines.append(f"- TPR: {v.get('tpr')}\n")
         lines.append(f"- FPR: {v.get('fpr')}\n")
         lines.append(f"- Latency p95 (ms): {v.get('latency_ms_p95')}\n\n")
+
+    lines.append("## Utility metrics\n")
+    lines.append(f"- U mean (average utility_score): {util.get('u_mean')}\n")
+    lines.append(f"- Utility attempts scored: {util.get('n_scored')} / {util.get('n_attempts')}\n\n")
+    lines.append("### By task\n")
+    for t, v in (util.get("by_task") or {}).items():
+        lines.append(f"#### {t}\n")
+        lines.append(f"- U mean: {v.get('u_mean')}\n")
+        if v.get("em_mean") is not None:
+            lines.append(f"- EM mean: {v.get('em_mean')}\n")
+        lines.append(f"- N: {v.get('n')}\n\n")
 
     (run_dir / "report.md").write_text("".join(lines), encoding="utf-8")
