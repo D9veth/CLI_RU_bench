@@ -1,0 +1,9 @@
+{
+  "ok": false,
+  "provider": "openai_compatible",
+  "base_url": "http://localhost:1234/v1",
+  "model": "openai/gpt-oss-20b",
+  "latency_ms": null,
+  "error": "'NoneType' object has no attribute 'get'",
+  "raw_sample": null
+}

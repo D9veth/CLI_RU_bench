@@ -1,0 +1,28 @@
+[project]
+name = "llm-bench-cli"
+version = "0.1.0"
+description = "CLI benchmark runner for evaluating LLM defense configurations (core + CLI only)."
+requires-python = ">=3.10"
+dependencies = [
+  "typer>=0.12",
+  "pydantic>=2.0",
+  "pyyaml>=6.0",
+  "requests>=2.31",
+  "jsonschema>=4.0",
+]
+
+[project.scripts]
+bench = "bench.cli:app"
+
+[tool.ruff]
+line-length = 100
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bench*"]
+exclude = ["data*", "configs*", "runs*"]
+

@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "provider": "openai_compatible",
+  "base_url": "http://localhost:1234/v1",
+  "model": "openai/gpt-oss-20b",
+  "latency_ms": 5432.93841695413,
+  "error": null,
+  "raw_sample": {
+    "content": "",
+    "usage": {
+      "prompt_tokens": 68,
+      "completion_tokens": 7,
+      "total_tokens": 75
+    }
+  }
+}

@@ -1,0 +1,42 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyInterpreterInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="false" level="WARNING" enabled_by_default="false">
+      <option name="ignoredPackages">
+        <list>
+          <option value="click" />
+          <option value="fastapi" />
+          <option value="jsonschema" />
+          <option value="namesgenerator" />
+          <option value="psutil" />
+          <option value="pydantic" />
+          <option value="PyYAML" />
+          <option value="requests" />
+          <option value="PySocks" />
+          <option value="Unidecode" />
+          <option value="kafka-python" />
+          <option value="uvicorn" />
+          <option value="zaproxy" />
+          <option value="python-multipart" />
+          <option value="uro" />
+          <option value="behave" />
+          <option value="certifi" />
+          <option value="charset-normalizer" />
+          <option value="gevent" />
+          <option value="greenlet" />
+          <option value="idna" />
+          <option value="parse" />
+          <option value="parse_type" />
+          <option value="setuptools" />
+          <option value="six" />
+          <option value="urllib3" />
+          <option value="uuid" />
+          <option value="websocket-client" />
+          <option value="zope.event" />
+          <option value="zope.interface" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
