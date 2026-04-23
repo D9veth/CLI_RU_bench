@@ -1,0 +1,89 @@
+{
+  "target": {
+    "provider": "openai_compatible",
+    "endpoint_url": null,
+    "base_url": "http://localhost:1234/v1",
+    "chat_path": "/chat/completions",
+    "model": "meta-llama/Llama-3.1-8B-Instruct",
+    "api_key_env": "OPENAI_API_KEY",
+    "auth_header": "Authorization",
+    "auth_scheme": "Bearer",
+    "timeout_sec": 60,
+    "retries": 2,
+    "max_concurrency": 1,
+    "headers": {}
+  },
+  "generation": {
+    "temperature": 0.2,
+    "top_p": 0.95,
+    "max_tokens": 512
+  },
+  "defense": {
+    "profile": "D3",
+    "system_prompt_path": "prompts/safety_system_ru_v1.txt",
+    "system_prompt_text": null,
+    "wrap_user_messages": true,
+    "wrap_template_path": null,
+    "wrap_template_text": null,
+    "user_wrap_prefix": null,
+    "user_wrap_suffix": null,
+    "prefilter": {
+      "enabled": true,
+      "patterns": [
+        "(?i)игнорируй.*(инструкц|правил|system)",
+        "(?i)обой(ди|ти).*огранич",
+        "(?i)jailbreak|prompt injection",
+        "(?i)покажи.*(system prompt|системн.*промпт|скрыт.*инструк)",
+        "(?i)выдай.*(пароль|ключ|token|api[-_ ]?key)"
+      ],
+      "mode": "regex",
+      "action": "block",
+      "case_sensitive": false
+    },
+    "postfilter": {
+      "enabled": true,
+      "patterns": [
+        "(?i)api[-_ ]?key|secret|token|пароль|ключ",
+        "(?i)system prompt|скрыт(ые|ая) инструкц|внутренн(ие|яя) инструкц",
+        "(?i)BEGIN\\s+SYSTEM|END\\s+SYSTEM"
+      ],
+      "mode": "regex",
+      "action": "block",
+      "case_sensitive": false
+    },
+    "prefilter_patterns": [
+      "(?i)игнорируй.*(инструкц|правил|system)",
+      "(?i)обой(ди|ти).*огранич",
+      "(?i)jailbreak|prompt injection",
+      "(?i)покажи.*(system prompt|системн.*промпт|скрыт.*инструк)",
+      "(?i)выдай.*(пароль|ключ|token|api[-_ ]?key)"
+    ],
+    "postfilter_patterns": [
+      "(?i)api[-_ ]?key|secret|token|пароль|ключ",
+      "(?i)system prompt|скрыт(ые|ая) инструкц|внутренн(ие|яя) инструкц",
+      "(?i)BEGIN\\s+SYSTEM|END\\s+SYSTEM"
+    ],
+    "refusal_template_path": null,
+    "refusal_template_text": null,
+    "json_schema_path": null,
+    "tags": {},
+    "notes": null
+  },
+  "run": {
+    "repeats": 1,
+    "use_cache": false,
+    "cache_dir": null
+  },
+  "dataset_path": "data/merged_safety_utility_big.jsonl",
+  "dataset_id": "data/merged_safety_utility_big.jsonl",
+  "dataset_version": null,
+  "dataset_split": "dev",
+  "dataset_hash": "dee889346c1d6226ab8535e185ec97fbc498f9ff9f39647c586ef9e8f2f02b01",
+  "config_hash": "307951e055c3762636d7f19accdee3821c1e91f727f1d11d4d8f23bc60d3be5e",
+  "scoring_rules_hash": "b52d3961285f8e523075ac5ac5dfd5a35a5d821191ee3eefb0e7b15ae86bf5c1",
+  "code_version": "unknown",
+  "started_at": "2026-03-25T14:31:00Z",
+  "finished_at": "2026-03-25T16:35:00Z",
+  "config_source_path": "/Users/m.roslovets/Downloads/llm_bench_cli_utility_v1/configs/defenses/d3_soft_lowtemp.yaml",
+  "config_source_name": "d3_soft_lowtemp.yaml"
+}

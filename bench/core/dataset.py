@@ -9,6 +9,8 @@ import yaml
 Role = Literal["system", "user", "assistant"]
 ScenarioType = Literal["single_turn", "multi_turn"]
 CaseType = Literal["attack", "benign", "utility"]
+VALID_ROLES = {"system", "user", "assistant"}
+VALID_CASE_TYPES = {"attack", "benign", "utility"}
 
 
 @dataclass
@@ -79,26 +81,36 @@ def _parse_case(obj: Dict[str, Any]) -> Case:
     )
 
 
-def load_dataset(path: Path) -> List[Case]:
-    """Load dataset from YAML (list) or JSONL."""
+def load_dataset_objects(path: Path) -> List[Dict[str, Any]]:
+    """Load raw dataset objects from YAML (list) or JSONL without coercing into Case."""
     suffix = path.suffix.lower()
 
     if suffix in {".yaml", ".yml"}:
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
         if not isinstance(data, list):
             raise ValueError("YAML dataset must be a list of cases.")
-        return [_parse_case(x) for x in data]
+        if not all(isinstance(x, dict) for x in data):
+            raise ValueError("Each YAML dataset item must be an object.")
+        return list(data)
 
     if suffix == ".jsonl":
         import json
 
-        cases: List[Case] = []
+        items: List[Dict[str, Any]] = []
         with path.open("r", encoding="utf-8") as f:
-            for line in f:
+            for line_no, line in enumerate(f, start=1):
                 line = line.strip()
                 if not line:
                     continue
-                cases.append(_parse_case(json.loads(line)))
-        return cases
+                obj = json.loads(line)
+                if not isinstance(obj, dict):
+                    raise ValueError(f"JSONL line {line_no}: each record must be an object.")
+                items.append(obj)
+        return items
 
     raise ValueError(f"Unsupported dataset format: {path}")
+
+
+def load_dataset(path: Path) -> List[Case]:
+    """Load dataset from YAML (list) or JSONL."""
+    return [_parse_case(x) for x in load_dataset_objects(path)]

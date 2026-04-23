@@ -1,0 +1,42 @@
+defaults:
+  target:
+    provider: openai_compatible
+    base_url: "http://localhost:1234/v1"
+    api_key_env: "OPENAI_API_KEY"
+    timeout_sec: 60
+    retries: 2
+    max_concurrency: 1
+    chat_path: "/chat/completions"
+
+models:
+  - key: gemma_3_12b
+    label: Gemma 3 12B
+    family: Gemma
+    target:
+      model: "google/gemma-3-12b"
+      base_url: "http://localhost:1234/v1"
+
+  - key: qwen2_5_7b_instruct
+    label: Qwen 2.5 7B Instruct
+    family: Qwen
+    target:
+      model: "Qwen/Qwen2.5-7B-Instruct"
+      base_url: "http://localhost:1234/v1"
+
+
+  - key: mistral_7b_instruct_q5
+    label: Mistral 7B Instruct Q5
+    family: Mistral
+    target:
+      model: "mistral-7b-instruct-v0.3@q5_k_m"
+      base_url: "http://localhost:1234/v1"
+    anchor_run: "runs_mistral_q5/20260302T091514Z_431f89"
+
+
+  - key: llama_3_1_8b_instruct
+    label: Llama 3.1 8B Instruct
+    family: Llama
+    target:
+      model: "meta-llama/Llama-3.1-8B-Instruct"
+      base_url: "http://localhost:1234/v1"
+

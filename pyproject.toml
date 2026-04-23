@@ -9,6 +9,10 @@ dependencies = [
   "pyyaml>=6.0",
   "requests>=2.31",
   "jsonschema>=4.0",
+]
+
+[project.optional-dependencies]
+analysis = [
   "matplotlib>=3.8",
 ]
 
@@ -26,4 +30,3 @@ build-backend = "setuptools.build_meta"
 where = ["."]
 include = ["bench*"]
 exclude = ["data*", "configs*", "runs*"]
-

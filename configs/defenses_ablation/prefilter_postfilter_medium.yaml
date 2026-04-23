@@ -1,0 +1,26 @@
+target:
+  provider: openai_compatible
+  base_url: "http://localhost:8000/v1"
+  model: "your-model"
+  api_key_env: "OPENAI_API_KEY"
+  timeout_sec: 60
+  retries: 2
+  max_concurrency: 1
+
+generation:
+  temperature: 0.7
+  top_p: 0.95
+  max_tokens: 512
+
+defense:
+  profile: "D3"
+  prefilter_patterns:
+    - "(?i)jailbreak|prompt injection"
+    - "(?i)игнорируй.*инструк"
+    - "(?i)выдай.*(пароль|token|api[-_ ]?key)"
+  postfilter_patterns:
+    - "(?i)api[-_ ]?key|secret|token|пароль|ключ"
+    - "(?i)system prompt|скрыт(ые|ая) инструкц"
+
+run:
+  repeats: 1

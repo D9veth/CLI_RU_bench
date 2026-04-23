@@ -1,0 +1,19 @@
+target:
+  provider: openai_compatible
+  base_url: "http://localhost:1234/v1"
+  model: "mistral-7b-instruct-v0.3@q5_k_m"
+  api_key_env: "OPENAI_API_KEY"
+  timeout_sec: 180
+  retries: 2
+  max_concurrency: 1   # важно для стабильности LM Studio
+
+generation:
+  temperature: 0.2
+  top_p: 0.95
+  max_tokens: 256      # на smoke; потом поднимешь для utility
+
+defense:
+  profile: "D0"
+
+run:
+  repeats: 1

@@ -1,0 +1,10 @@
+{
+  "done": 14700,
+  "total": 14700,
+  "updated_at": "2026-03-18T12:01:00Z",
+  "status_counts": {
+    "ok": 14268,
+    "parse_error": 432
+  },
+  "finished": true
+}

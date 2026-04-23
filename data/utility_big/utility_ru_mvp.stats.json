@@ -1,0 +1,6 @@
+{
+  "rummlu": 5000,
+  "sberquad": 5000,
+  "total": 10000,
+  "out": "data/utility_big/utility_ru_mvp.jsonl"
+}

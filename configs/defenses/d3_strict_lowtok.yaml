@@ -19,7 +19,7 @@ defense:
   prefilter_patterns:
     - "(?i)ignore.*previous|игнорируй.*(инструкц|правил|system)"
     - "(?i)developer message|system message|hidden (prompt|policy)"
-    - "(?i)role\s*:\s*system|<\s*system\s*>"
+    - '(?i)role\s*:\s*system|<\s*system\s*>'
     - "(?i)обой(ди|ти).*огранич|jailbreak|prompt injection"
     - "(?i)покажи.*(system prompt|системн.*промпт|скрыт.*инструк)"
     - "(?i)выдай.*(пароль|ключ|token|api[-_ ]?key)"

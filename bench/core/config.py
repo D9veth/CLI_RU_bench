@@ -1,15 +1,20 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional, Literal, Dict, Any
+from typing import Optional, Literal, Dict, Any, List
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict, PrivateAttr, field_validator, model_validator
 
 
 ProviderName = Literal["openai_compatible"]
 
-class TargetConfig(BaseModel):
+
+class StrictBaseModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class TargetConfig(StrictBaseModel):
     provider: ProviderName = "openai_compatible"
 
     endpoint_url: Optional[str] = Field(
@@ -45,23 +50,90 @@ class TargetConfig(BaseModel):
         return base + path
 
 
-class GenerationConfig(BaseModel):
+class GenerationConfig(StrictBaseModel):
     temperature: float = 0.7
     top_p: float = 0.95
     max_tokens: int = 512
 
-class DefenseConfig(BaseModel):
-    # MVP placeholders; replace with policy-as-code integration later.
+
+class FilterConfig(StrictBaseModel):
+    enabled: bool = True
+    patterns: List[str] = Field(default_factory=list)
+    mode: str = "regex"
+    action: str = "block"
+    case_sensitive: bool = False
+
+
+class DefenseConfig(StrictBaseModel):
+    profile: str = "D0"
+    system_prompt_path: Optional[str] = None
+    system_prompt_text: Optional[str] = None
+
+    wrap_user_messages: bool = False
+    wrap_template_path: Optional[str] = None
+    wrap_template_text: Optional[str] = None
+    user_wrap_prefix: Optional[str] = None
+    user_wrap_suffix: Optional[str] = None
+
+    prefilter: Optional[FilterConfig] = None
+    postfilter: Optional[FilterConfig] = None
+    # Legacy flat fields still used in existing configs/defenses/*.yaml
+    prefilter_patterns: Optional[List[str]] = None
+    postfilter_patterns: Optional[List[str]] = None
+
+    refusal_template_path: Optional[str] = None
+    refusal_template_text: Optional[str] = None
     json_schema_path: Optional[str] = None
+    tags: Dict[str, Any] = Field(default_factory=dict)
+    notes: Optional[str] = None
 
-class RunSection(BaseModel):
+    @field_validator("profile")
+    @classmethod
+    def _normalize_profile(cls, value: str) -> str:
+        value = (value or "D0").strip().upper()
+        if not value:
+            return "D0"
+        return value
+
+    @model_validator(mode="after")
+    def _normalize_legacy_filter_fields(self) -> "DefenseConfig":
+        if self.prefilter is None and self.prefilter_patterns is not None:
+            self.prefilter = FilterConfig(
+                enabled=True,
+                patterns=list(self.prefilter_patterns),
+                action="block",
+            )
+        if self.postfilter is None and self.postfilter_patterns is not None:
+            self.postfilter = FilterConfig(
+                enabled=True,
+                patterns=list(self.postfilter_patterns),
+                action="block",
+            )
+        return self
+
+
+class RunSection(StrictBaseModel):
     repeats: int = 1
+    use_cache: bool = False
+    cache_dir: Optional[str] = None
 
-class RunConfig(BaseModel):
+
+class RunConfig(StrictBaseModel):
     target: TargetConfig
     generation: GenerationConfig = Field(default_factory=GenerationConfig)
     defense: DefenseConfig = Field(default_factory=DefenseConfig)
     run: RunSection = Field(default_factory=RunSection)
+    _source_path: Optional[Path] = PrivateAttr(default=None)
+
+    @property
+    def source_path(self) -> Optional[Path]:
+        return self._source_path
+
+    @property
+    def source_dir(self) -> Path:
+        if self._source_path is not None:
+            return self._source_path.parent
+        return Path.cwd()
 
     @staticmethod
     def load(path: Path) -> "RunConfig":
@@ -73,4 +145,6 @@ class RunConfig(BaseModel):
             data = json.loads(raw)
         else:
             raise ValueError(f"Unsupported config format: {path}")
-        return RunConfig.model_validate(data)
+        cfg = RunConfig.model_validate(data)
+        cfg._source_path = path.resolve()
+        return cfg

@@ -7,6 +7,28 @@ MODEL=${MODEL:-your-model}
 OUT=${OUT:-runs}
 API_KEY_ENV=${API_KEY_ENV:-OPENAI_API_KEY}
 
+if command -v bench >/dev/null 2>&1; then
+  BENCH_CMD=(bench)
+else
+  PYTHON_BIN=${PYTHON_BIN:-}
+  if [[ -z "$PYTHON_BIN" ]]; then
+    if [[ -x ".venv/bin/python" ]]; then
+      PYTHON_BIN=".venv/bin/python"
+    elif [[ -x ".venv/bin/python3" ]]; then
+      PYTHON_BIN=".venv/bin/python3"
+    elif [[ -x ".venv/bin/python3.14" ]]; then
+      PYTHON_BIN=".venv/bin/python3.14"
+    elif [[ -f ".venv/bin/bench" ]]; then
+      candidate=$(sed -n '1s/^#!//p' .venv/bin/bench)
+      if [[ -n "$candidate" && -x "$candidate" ]]; then
+        PYTHON_BIN="$candidate"
+      fi
+    fi
+  fi
+  PYTHON_BIN=${PYTHON_BIN:-python3}
+  BENCH_CMD=("$PYTHON_BIN" -m bench.cli)
+fi
+
 if [[ ! -f "$DATASET" ]]; then
   echo "Dataset file not found: $DATASET" >&2
   exit 2
@@ -26,9 +48,12 @@ for cfg in configs/defenses/*.yaml; do
   if [[ "$cfg" == *"_target_placeholder.yaml" ]]; then
     continue
   fi
+  if [[ "$cfg" == *"smoke"* ]]; then
+    continue
+  fi
   name=$(basename "$cfg" .yaml)
   echo "--- $name ---"
-  bench run \
+  "${BENCH_CMD[@]}" run \
     -c "$cfg" \
     -d "$DATASET" \
     --base-url "$BASE_URL" \

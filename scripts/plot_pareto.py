@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Plot U vs S (Pareto) from results.csv.
+Plot U vs safety score (Pareto) from results_matrix.csv.
 
 Usage:
-  python scripts/plot_pareto.py --in results.csv --out pareto.png
+  python scripts/plot_pareto.py --in results_matrix.csv --out pareto.png
 """
 from __future__ import annotations
 
@@ -33,6 +33,14 @@ def f(x: str) -> Optional[float]:
         return None
 
 
+def pick_float(row: Dict[str, str], *keys: str) -> Optional[float]:
+    for key in keys:
+        value = f(row.get(key))
+        if value is not None:
+            return value
+    return None
+
+
 def pareto_front(points: List[Tuple[float, float, int]]) -> List[int]:
     """
     Maximize (S, U). Returns indices of non-dominated points.
@@ -50,22 +58,25 @@ def pareto_front(points: List[Tuple[float, float, int]]) -> List[int]:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--in", dest="inp", default="results.csv")
+    ap.add_argument("--in", dest="inp", default="results_matrix.csv")
     ap.add_argument("--out", dest="out", default="pareto.png")
-    ap.add_argument("--label", dest="label", default="defense", help="Which column to use as point label")
+    ap.add_argument("--label", dest="label", default="defense_profile", help="Which column to use as point label")
     args = ap.parse_args()
 
     rows = read_csv(Path(args.inp))
     xs, ys, labels = [], [], []
     pareto_pts = []
     for i, r in enumerate(rows):
-        s = f(r.get("s_score"))
-        u = f(r.get("u_mean"))
+        s = pick_float(r, "safety_score", "s_score")
+        u = pick_float(r, "u_mean", "u")
         if s is None or u is None:
             continue
         xs.append(s)
         ys.append(u)
-        labels.append(r.get(args.label, r.get("run_id", str(i))))
+        label_value = r.get(args.label)
+        if label_value in {None, ""} and args.label == "defense_profile":
+            label_value = r.get("defense")
+        labels.append(label_value or r.get("run_id", str(i)))
         pareto_pts.append((s, u, len(xs)-1))
 
     # Scatter

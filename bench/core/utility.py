@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import string
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 
 @dataclass
@@ -20,21 +20,58 @@ class UtilityScore:
 
 
 _MC_LETTERS = {"A", "B", "C", "D"}
+_MC_CYR_TO_LAT = str.maketrans(
+    {
+        "А": "A",
+        "В": "B",
+        "С": "C",
+        "Д": "D",
+    }
+)
 
 
 def parse_mcq_letter(text: str) -> Optional[str]:
-    """Extract the first A/B/C/D-like answer from the model output."""
+    """Extract A/B/C/D answer from model output with robust RU/EN patterns.
+
+    Supported examples:
+    - "Ответ: B"
+    - "(B)"
+    - "B."
+    - "вариант B"
+    - "я выбираю C"
+    """
     if not text:
         return None
 
-    # Common patterns: "B", "Ответ: B", "(B)", "B." etc.
-    m = re.search(r"\b([ABCD])\b", text.upper())
+    txt = text.upper().translate(_MC_CYR_TO_LAT)
+
+    # Strong cue phrases first (RU/EN).
+    m = re.search(
+        r"(?:\bОТВЕТ\b|\bANSWER\b|\bANS\b|\bВАРИАНТ\b|\bOPTION\b|\bЯ\s+ВЫБИРАЮ\b|\bВЫБИРАЮ\b|\bМОЙ\s+ОТВЕТ\b)\s*[:\-]?\s*[\(\[]?\s*([ABCD])\s*[\)\]]?",
+        txt,
+    )
     if m:
         return m.group(1)
 
-    m = re.search(r"\(([ABCD])\)", text.upper())
+    # Entire output is a single option token ("B", "(B)", "B.")
+    m = re.search(r"^\s*[\(\[]?\s*([ABCD])\s*[\)\].,:;!\?]?\s*$", txt)
     if m:
         return m.group(1)
+
+    # Parenthesized answer anywhere.
+    m = re.search(r"\(([ABCD])\)", txt)
+    if m:
+        return m.group(1)
+
+    # Standalone token with common punctuation.
+    m = re.search(r"\b([ABCD])\s*[.)](?=\s|$)", txt)
+    if m:
+        return m.group(1)
+
+    # Conservative fallback: only if exactly one isolated letter token exists.
+    isolated = re.findall(r"\b([ABCD])\b", txt)
+    if len(isolated) == 1:
+        return isolated[0]
 
     return None
 
@@ -96,11 +133,31 @@ def squad_max_em_f1(pred: str, gold_answers: List[str]) -> Tuple[float, float]:
 
 def score_rummlu(pred_text: str, gold_label: str) -> UtilityScore:
     pred = parse_mcq_letter(pred_text)
+    if pred is None:
+        raise ValueError("ruMMLU parse_error: could not parse option A/B/C/D from model output")
     gold = (gold_label or "").strip().upper()
     acc = 1.0 if pred is not None and pred == gold else 0.0
-    return UtilityScore(task="rummlu_mcq", score=acc, details={"accuracy": acc})
+    return UtilityScore(task="rummlu_mcq", score=acc, details={"accuracy": acc, "predicted_option": pred})
 
 
 def score_sberquad(pred_text: str, gold_answers: List[str]) -> UtilityScore:
     em, f1 = squad_max_em_f1(pred_text, gold_answers)
     return UtilityScore(task="sberquad_qa", score=f1, details={"em": em, "f1": f1})
+
+
+def build_sberquad_debug(pred_text: str, gold_answers: List[str], *, max_chars: int = 160) -> Dict[str, Any]:
+    """Compact normalized strings for per-case debugging in artifacts."""
+    pred_norm = normalize_ru(pred_text or "")
+    refs_norm = [normalize_ru(x or "") for x in (gold_answers or [])]
+
+    def clip(s: str) -> str:
+        if len(s) <= max_chars:
+            return s
+        return s[: max_chars - 3] + "..."
+
+    return {
+        "normalized_prediction": clip(pred_norm),
+        "normalized_gold_answers": [clip(x) for x in refs_norm[:5]],
+        "prediction_is_empty": (pred_norm == ""),
+        "num_gold_answers": len(refs_norm),
+    }

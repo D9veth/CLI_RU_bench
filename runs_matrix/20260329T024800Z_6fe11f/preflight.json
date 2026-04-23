@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "provider": "openai_compatible",
+  "base_url": "http://localhost:1234/v1",
+  "model": "mistral-7b-instruct-v0.3@q5_k_m",
+  "latency_ms": 1039.256467,
+  "error": null,
+  "raw_sample": {
+    "content": "```\nPinging 1",
+    "usage": {
+      "prompt_tokens": 11,
+      "completion_tokens": 8,
+      "total_tokens": 19
+    }
+  }
+}

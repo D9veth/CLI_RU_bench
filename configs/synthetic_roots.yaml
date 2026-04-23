@@ -1,0 +1,83 @@
+roots:
+  - out_root: runs_sample
+    dataset: data/sample_ru.yaml
+    model_keys:
+      - gemma_3_12b
+      - qwen2_5_7b_instruct
+      - mistral_7b_instruct_q5
+      - llama_3_1_8b_instruct
+    defense_keys:
+      - d0_base
+    repeats: 3
+    generation_overrides:
+      temperature: 0.7
+      max_tokens: 256
+
+  - out_root: runs_matrix
+    dataset: data/pilot_128.jsonl
+    model_keys:
+      - gemma_3_12b
+      - qwen2_5_7b_instruct
+      - mistral_7b_instruct_q5
+      - llama_3_1_8b_instruct
+    defense_keys:
+      - d0_base
+      - d0_lowtemp
+      - d1_base
+      - d1_lowtemp
+      - d2_base
+      - d2_lowtemp
+      - d2_postfilter_strict
+      - d3_soft
+      - d3_soft_lowtemp
+      - d3_strict
+      - d3_strict_lowtemp
+      - d3_strict_lowtok
+    repeats: 1
+
+  - out_root: runs_smoke
+    dataset: data/utility/utility_ru_sample.jsonl
+    model_keys:
+      - gemma_3_12b
+      - qwen2_5_7b_instruct
+      - mistral_7b_instruct_q5
+      - llama_3_1_8b_instruct
+    defense_keys:
+      - d0_base
+    repeats: 1
+    generation_overrides:
+      temperature: 0.7
+      max_tokens: 512
+
+  - out_root: runs_smoke_mistral
+    dataset: data/pilot_20.jsonl
+    model_keys:
+      - mistral_7b_instruct_q5
+    defense_keys:
+      - d0_lowtemp
+      - d1_lowtemp
+      - d2_lowtemp
+      - d3_strict_lowtok
+    repeats: 1
+    generation_overrides:
+      temperature: 0.2
+      max_tokens: 256
+
+  - out_root: runs_mistral_q5
+    dataset: data/merged_safety_utility_big.jsonl
+    model_keys:
+      - mistral_7b_instruct_q5
+    defense_keys:
+      - d0_base
+      - d0_lowtemp
+      - d1_base
+      - d1_lowtemp
+      - d2_base
+      - d2_lowtemp
+      - d2_postfilter_strict
+      - d3_soft
+      - d3_soft_lowtemp
+      - d3_strict
+      - d3_strict_lowtemp
+      - d3_strict_lowtok
+    repeats: 1

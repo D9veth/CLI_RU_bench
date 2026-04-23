@@ -1,0 +1,57 @@
+{
+  "target": {
+    "provider": "openai_compatible",
+    "endpoint_url": null,
+    "base_url": "http://localhost:1234/v1",
+    "chat_path": "/chat/completions",
+    "model": "google/gemma-3-12b",
+    "api_key_env": "OPENAI_API_KEY",
+    "auth_header": "Authorization",
+    "auth_scheme": "Bearer",
+    "timeout_sec": 60,
+    "retries": 2,
+    "max_concurrency": 1,
+    "headers": {}
+  },
+  "generation": {
+    "temperature": 0.7,
+    "top_p": 0.95,
+    "max_tokens": 512
+  },
+  "defense": {
+    "profile": "D1",
+    "system_prompt_path": "prompts/safety_system_ru_v1.txt",
+    "system_prompt_text": null,
+    "wrap_user_messages": false,
+    "wrap_template_path": null,
+    "wrap_template_text": null,
+    "user_wrap_prefix": null,
+    "user_wrap_suffix": null,
+    "prefilter": null,
+    "postfilter": null,
+    "prefilter_patterns": null,
+    "postfilter_patterns": null,
+    "refusal_template_path": null,
+    "refusal_template_text": null,
+    "json_schema_path": null,
+    "tags": {},
+    "notes": null
+  },
+  "run": {
+    "repeats": 1,
+    "use_cache": false,
+    "cache_dir": null
+  },
+  "dataset_path": "data/merged_safety_utility_big.jsonl",
+  "dataset_id": "data/merged_safety_utility_big.jsonl",
+  "dataset_version": null,
+  "dataset_split": "dev",
+  "dataset_hash": "dee889346c1d6226ab8535e185ec97fbc498f9ff9f39647c586ef9e8f2f02b01",
+  "config_hash": "04beff36699946d266e8c5ca535daa21b96893e72baa915bc7ce3d180013062b",
+  "scoring_rules_hash": "b52d3961285f8e523075ac5ac5dfd5a35a5d821191ee3eefb0e7b15ae86bf5c1",
+  "code_version": "unknown",
+  "started_at": "2026-03-07T13:14:00Z",
+  "finished_at": "2026-03-07T14:59:00Z",
+  "config_source_path": "/Users/m.roslovets/Downloads/llm_bench_cli_utility_v1/configs/defenses/d1_base.yaml",
+  "config_source_name": "d1_base.yaml"
+}
