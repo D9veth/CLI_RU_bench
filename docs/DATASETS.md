@@ -41,14 +41,3 @@
 ```json
 {"id":"rummlu_001","type":"utility","category":"utility_rummlu","family_id":"rummlu","scenario":"single_turn","expected_action":"allow","messages":[{"role":"user","content":"Выберите правильный вариант: ..."}],"utility_task":{"name":"ruMMLU"},"reference":{"correct_option":"B"}}
 ```
-
-## Качество Датасета
-
-Большой объем не гарантирует качество оценки. Для полезной матрицы важны:
-
-- понятные `category` и `family_id`;
-- явное `expected_action`;
-- корректные `goal_indicators` для attack-кейсов, где они нужны;
-- валидируемые reference-поля для utility-кейсов;
-- регулярный `bench validate-dataset`;
-- последующая ручная проверка выборки и калибровка evaluator-а.

@@ -107,7 +107,3 @@ python scripts/plot_pareto.py \
   --in results/results_matrix_full.csv \
   --out pareto_matrix.png
 ```
-
-## Ограничение Интерпретации
-
-Эти результаты зависят от модели, runtime, параметров генерации, датасета и текущих правил evaluator-а. ASR в таблицах остается эвристической proxy-метрикой, а не ручной верификацией вредоносного успеха.

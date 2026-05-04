@@ -105,6 +105,3 @@ python scripts/plot_results_suite.py \
 - `results/pareto.png` и `results/figures/*.png` - графики;
 - `runs_matrix/<run_id>/` - сырые артефакты каждого запуска.
 
-## Важное Ограничение
-
-Полная матрица может быть долгой по времени и дорогой по вычислениям. Для проверки работоспособности всегда начинайте с `data/pilot_20.jsonl` или другого smoke/pilot split-а.

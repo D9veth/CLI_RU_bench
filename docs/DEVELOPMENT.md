@@ -39,7 +39,3 @@ python -m unittest discover -s tests
 ```bash
 bench validate-dataset --in path/to/dataset.jsonl --out tmp/dataset_validation_report.json
 ```
-
-## Большие Результаты
-
-Не коммитьте `runs/`, `runs_matrix/`, `runs_mistral_q5/`, `results/`, `artifacts/`, root-level PNG/CSV с результатами и большие локальные датасеты. Для передачи полной матрицы используйте отдельный архив, release asset, внешнее хранилище или приложение к курсовой работе.
