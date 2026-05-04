@@ -12,8 +12,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+]
 analysis = [
   "matplotlib>=3.8",
+  "numpy>=1.26",
+  "pandas>=2.0",
 ]
 
 [project.scripts]

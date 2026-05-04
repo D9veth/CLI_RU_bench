@@ -1,0 +1,64 @@
+# Python cache/build
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Virtual environments and local secrets
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# OS/editor files
+.DS_Store
+__MACOSX/
+.idea/
+.vscode/*
+!.vscode/settings.example.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+
+# Local benchmark caches and temporary outputs
+.bench_cache/
+tmp/
+
+# Ad-hoc experiment artifacts and generated analysis outputs
+runs/
+/*.png
+analysis_exports/
+figures/
+aggregation_warnings.csv
+
+# Canonical course experiment artifacts are intentionally kept in the repo.
+!runs_matrix/
+!runs_matrix/**
+!runs_mistral_q5/
+!runs_mistral_q5/**
+!artifacts/
+!artifacts/**
+!results/
+!results/**
+!results_matrix.csv
+!pareto_matrix.png
+
+# Large local/generated datasets
+data/merged_safety_utility_big.jsonl
+data/utility_big/
+
+# The committed course matrix references these dataset artifacts.
+!data/merged_safety_utility_big.jsonl
+!data/utility_big/
+!data/utility_big/**
+
+# Keep curated small examples visible even when broader patterns are added later.
+!data/sample_ru.yaml
+!data/pilot_20.jsonl
+!data/pilot_128.jsonl
+!examples/
+!examples/**
