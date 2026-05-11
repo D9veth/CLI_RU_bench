@@ -38,6 +38,21 @@ bench --help
 
 На Windows используйте активацию окружения, принятую для вашей shell, например `.venv\Scripts\activate`.
 
+## Backend веб-приложения
+
+Базовая backend-инфраструктура Django/DRF находится в [backend/README.md](backend/README.md).
+
+## Frontend веб-приложения
+
+React/Vite dashboard находится в [frontend/README.md](frontend/README.md). Общая архитектура описана в [docs/WEB_APP.md](docs/WEB_APP.md).
+
+```bash
+cd frontend
+npm install
+npm run dev
+npm run build
+```
+
 ## Проверка Датасета
 
 ```bash
