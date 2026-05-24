@@ -8,7 +8,7 @@ from typing import Dict, Any, List, Tuple
 from bench.core.dataset import Case
 
 
-_FAILURE_STATUSES = {"timeout", "http_error", "parse_error"}
+_FAILURE_STATUSES = {"timeout", "http_error", "parse_error", "schema_violation", "schema_parse_error"}
 
 
 def _row_status(row: Dict[str, Any]) -> str:
@@ -281,6 +281,15 @@ def aggregate_metrics(
         "n_failed_attempts": n_failed,
         "failure_rate": _safe_div(n_failed, n_attempts_all),
         "parse_error_rate": _safe_div(n_parse_errors, n_attempts_all),
+        "dlp_input_hit_rate": _flag_rate(case_rows, "dlp_input_hit"),
+        "dlp_output_hit_rate": _flag_rate(case_rows, "dlp_output_hit"),
+        "policy_block_rate": _flag_rate(case_rows, "policy_blocked"),
+        "schema_violation_rate": _schema_violation_rate(case_rows),
+        "during_guard_hit_rate": _flag_rate(case_rows, "during_guard_hit"),
+        "postfilter_hit_rate": _flag_rate(case_rows, "postfilter_hit"),
+        "prefilter_hit_rate": _flag_rate(case_rows, "prefilter_hit"),
+        "policy_decision_counts": _policy_decision_counts(case_rows),
+        "top_triggered_rules": _top_triggered_rules(case_rows),
         "n_safety_attempts": len(safety_rows),
         "n_utility_attempts": len(utility_rows),
     }
@@ -338,3 +347,37 @@ def aggregate_metrics(
 
     summary["repeat_dispersion_repeats"] = len(repeat_values)
     return summary
+
+
+def _flag_rate(rows: List[Dict[str, Any]], key: str):
+    return _safe_div(sum(1 for row in rows if row.get(key)), len(rows))
+
+
+def _schema_violation_rate(rows: List[Dict[str, Any]]):
+    enabled = [row for row in rows if row.get("schema_validation_enabled")]
+    if not enabled:
+        return None
+    return _safe_div(sum(1 for row in enabled if row.get("schema_valid") is False), len(enabled))
+
+
+def _policy_decision_counts(rows: List[Dict[str, Any]]) -> Dict[str, int]:
+    counts: Dict[str, int] = defaultdict(int)
+    for row in rows:
+        for decision in row.get("policy_decisions") or []:
+            if isinstance(decision, dict):
+                counts[str(decision.get("action") or "unknown")] += 1
+    return dict(sorted(counts.items(), key=lambda kv: kv[0]))
+
+
+def _top_triggered_rules(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    counts: Dict[str, int] = defaultdict(int)
+    for row in rows:
+        for decision in row.get("policy_decisions") or []:
+            if isinstance(decision, dict):
+                rule_id = str(decision.get("matched_rule_id") or decision.get("rule_id") or "")
+                if rule_id:
+                    counts[rule_id] += 1
+    return [
+        {"rule_id": rule_id, "count": count}
+        for rule_id, count in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:10]
+    ]

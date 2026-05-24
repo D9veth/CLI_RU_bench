@@ -10,6 +10,7 @@ from bench.core.cache import ResponseCache
 from bench.core.config import RunConfig
 from bench.core.dataset import Case
 from bench.core.defense import DefensePipeline
+from bench.core.dlp import redact_text, scan_text
 from bench.core.evaluator import detect_refusal_signals, evaluate_case
 from bench.core.metrics import aggregate_metrics
 from bench.core.storage import (
@@ -21,7 +22,7 @@ from bench.core.storage import (
 from bench.core.utility import build_sberquad_debug, score_rummlu, score_sberquad
 
 
-_ERROR_STATUSES = {"timeout", "http_error", "parse_error"}
+_ERROR_STATUSES = {"timeout", "http_error", "parse_error", "schema_violation", "schema_parse_error"}
 _PROGRESS_EVERY = 25
 
 
@@ -140,6 +141,15 @@ def _to_light_row(row: Dict[str, Any]) -> Dict[str, Any]:
         "utility_task": row.get("utility_task"),
         "utility_score": row.get("utility_score"),
         "utility_details": row.get("utility_details"),
+        "dlp_input_hit": row.get("dlp_input_hit"),
+        "dlp_output_hit": row.get("dlp_output_hit"),
+        "policy_blocked": row.get("policy_blocked"),
+        "policy_decisions": row.get("policy_decisions"),
+        "schema_validation_enabled": row.get("schema_validation_enabled"),
+        "schema_valid": row.get("schema_valid"),
+        "postfilter_hit": row.get("postfilter_hit"),
+        "prefilter_hit": row.get("prefilter_hit"),
+        "during_guard_hit": row.get("during_guard_hit"),
     }
 
 
@@ -184,7 +194,37 @@ def run_benchmark(client, run_cfg: RunConfig, cases: List[Case], run_dir: Path):
                 continue
 
             request_messages = pipeline.prepare_messages(case)
-            pre = pipeline.prefilter(case, request_messages)
+            dlp_input_findings = []
+            dlp_input_hit = False
+            dlp_output_findings = []
+            dlp_output_hit = False
+            dlp_action = None
+            redacted_text_changed = False
+            policy_decisions = []
+            policy_blocked = False
+            schema_enabled = bool(run_cfg.defense.schema_validation.enabled and run_cfg.defense.json_schema_path)
+            schema_valid = None
+            schema_error = None
+            schema_retry_count = 0
+            during_guard_hit = False
+
+            model_messages = request_messages
+            stored_request_messages = request_messages
+            if run_cfg.defense.dlp.enabled:
+                dlp_input_findings = scan_text(
+                    _messages_text(request_messages),
+                    severity_threshold=run_cfg.defense.dlp.input.severity_threshold,
+                )
+                dlp_input_hit = bool(dlp_input_findings)
+                if dlp_input_hit:
+                    stored_request_messages = _redact_messages(request_messages, dlp_input_findings)
+                    if run_cfg.defense.dlp.input.action in {"redact", "block", "force_refusal"}:
+                        model_messages = stored_request_messages
+                    redacted_text_changed = model_messages != request_messages
+
+            pre = pipeline.prefilter(case, model_messages)
+            policy_decisions = pre.findings or []
+            policy_blocked = bool(pre.hit and pre.action_taken in {"blocked", "forced_refusal"})
 
             called_model = False
             cache_hit = False
@@ -202,7 +242,13 @@ def run_benchmark(client, run_cfg: RunConfig, cases: List[Case], run_dir: Path):
             cache_key = None
 
             t0 = time.perf_counter()
-            if pre.hit and pre.action_taken == "blocked":
+            input_action = _effective_action(run_cfg.defense.dlp.input.action, dlp_input_hit)
+            if dlp_input_hit and input_action in {"block", "force_refusal"}:
+                latency_ms = float((time.perf_counter() - t0) * 1000.0)
+                final_text = pipeline.refusal_template
+                status = "filtered_dlp_input"
+                dlp_action = input_action
+            elif pre.hit and pre.action_taken in {"blocked", "forced_refusal"}:
                 latency_ms = float((time.perf_counter() - t0) * 1000.0)
                 final_text = pipeline.refusal_template
                 status = "filtered_prefilter"
@@ -225,7 +271,7 @@ def run_benchmark(client, run_cfg: RunConfig, cases: List[Case], run_dir: Path):
                     called_model = True
                     try:
                         raw = client.generate(
-                            messages=request_messages,
+                            messages=model_messages,
                             model=run_cfg.target.model,
                             temperature=run_cfg.generation.temperature,
                             top_p=run_cfg.generation.top_p,
@@ -249,20 +295,46 @@ def run_benchmark(client, run_cfg: RunConfig, cases: List[Case], run_dir: Path):
                         error_message = _truncate_error_message(str(e))
 
                 if status not in _ERROR_STATUSES:
-                    post = pipeline.postfilter(case, raw_text or "")
-                    post_hit = bool(post.hit)
-                    post_pattern = post.matched_pattern
-                    post_action = post.action_taken
+                    if run_cfg.defense.dlp.enabled:
+                        dlp_output_findings = scan_text(
+                            raw_text or "",
+                            severity_threshold=run_cfg.defense.dlp.output.severity_threshold,
+                        )
+                        dlp_output_hit = bool(dlp_output_findings)
+                        output_action = _effective_action(run_cfg.defense.dlp.output.action, dlp_output_hit)
+                        if dlp_output_hit and output_action == "redact":
+                            redacted = redact_text(raw_text or "", dlp_output_findings)
+                            redacted_text_changed = redacted_text_changed or redacted != (raw_text or "")
+                            raw_text = redacted
+                            dlp_action = "redact"
+                        elif dlp_output_hit and output_action in {"block", "force_refusal"}:
+                            final_text = pipeline.refusal_template
+                            status = "filtered_dlp_output"
+                            dlp_action = output_action
 
-                    if post.hit and post.action_taken == "redacted" and post.matched_pattern:
+                    post = pipeline.postfilter(case, raw_text or "") if status == "ok" else None
+                    post_hit = bool(post.hit) if post else False
+                    post_pattern = post.matched_pattern if post else None
+                    post_action = post.action_taken if post else None
+
+                    if post and post.hit and post.action_taken == "redacted" and post.matched_pattern:
                         final_text = _redact_with_pattern(raw_text or "", post.matched_pattern)
                         status = "filtered_postfilter"
-                    elif post.hit and post.action_taken == "forced_refusal":
+                    elif post and post.hit and post.action_taken == "forced_refusal":
                         final_text = pipeline.refusal_template
                         status = "filtered_postfilter"
-                    else:
+                    elif status == "ok":
                         final_text = raw_text
-                        status = "ok"
+                    if schema_enabled and status in {"ok", "filtered_postfilter"}:
+                        schema_result = pipeline.schema_validator.validate_text(final_text or "")
+                        schema_valid = schema_result.schema_valid
+                        schema_error = schema_result.error
+                        if schema_result.status in {"schema_violation", "schema_parse_error"}:
+                            if run_cfg.defense.schema_validation.action == "force_refusal":
+                                final_text = pipeline.refusal_template
+                                status = "filtered_schema"
+                            elif run_cfg.defense.schema_validation.action == "mark_error":
+                                status = schema_result.status
 
             if final_text is None and status not in _ERROR_STATUSES:
                 final_text = pipeline.refusal_template
@@ -276,7 +348,7 @@ def run_benchmark(client, run_cfg: RunConfig, cases: List[Case], run_dir: Path):
                 "expected_action": case.expected_action,
                 "latency_ms": latency_ms,
                 "status": status,
-                "request_messages": request_messages,
+                "request_messages": stored_request_messages,
                 "called_model": called_model,
                 "cache_hit": cache_hit,
                 "error_type": error_type,
@@ -292,6 +364,20 @@ def run_benchmark(client, run_cfg: RunConfig, cases: List[Case], run_dir: Path):
                 "response_text": final_text,
                 "defense_profile": pipeline.profile,
                 "defense_effective": pipeline.effective_label(),
+                "normalization_enabled": bool(run_cfg.defense.normalization.enabled),
+                "dlp_input_hit": dlp_input_hit,
+                "dlp_output_hit": dlp_output_hit,
+                "dlp_findings_count": len(dlp_input_findings) + len(dlp_output_findings),
+                "dlp_findings": _findings_to_dicts(dlp_input_findings + dlp_output_findings),
+                "dlp_action": dlp_action,
+                "redacted_text_changed": redacted_text_changed,
+                "policy_decisions": policy_decisions,
+                "policy_blocked": policy_blocked,
+                "schema_validation_enabled": schema_enabled,
+                "schema_valid": schema_valid,
+                "schema_error": schema_error,
+                "schema_retry_count": schema_retry_count,
+                "during_guard_hit": during_guard_hit,
             }
 
             if status in _ERROR_STATUSES:
@@ -486,4 +572,32 @@ def run_benchmark(client, run_cfg: RunConfig, cases: List[Case], run_dir: Path):
 
     rows_for_metrics = [r for r in rows_light if r.get("case_id") in cases_by_id]
     summary = aggregate_metrics(rows_for_metrics, cases_by_id)
+    summary["policy"] = pipeline.policy_metadata()
     return rows_light, summary
+
+
+def _messages_text(messages: List[Dict[str, str]]) -> str:
+    return "\n".join(message.get("content", "") for message in messages if message.get("role") == "user")
+
+
+def _redact_messages(messages: List[Dict[str, str]], findings) -> List[Dict[str, str]]:
+    return [
+        {
+            **message,
+            "content": redact_text(message.get("content", ""), findings) if message.get("role") == "user" else message.get("content", ""),
+        }
+        for message in messages
+    ]
+
+
+def _findings_to_dicts(findings) -> list[dict]:
+    return [finding.to_dict() if hasattr(finding, "to_dict") else dict(finding) for finding in findings]
+
+
+def _effective_action(action: str, hit: bool) -> str | None:
+    if not hit:
+        return None
+    action = (action or "audit").strip().lower()
+    if action in {"allow", "audit", "redact", "block", "force_refusal"}:
+        return action
+    return "audit"

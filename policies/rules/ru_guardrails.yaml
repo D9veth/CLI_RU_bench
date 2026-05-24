@@ -1,0 +1,60 @@
+version: "2026-05-24"
+rules:
+  - rule_id: pi_ignore_previous
+    enabled: true
+    detector_type: prompt_injection
+    pattern: "(ignore previous|ignore all previous|игнорируй предыдущ|игнорируй инструкц|игнорируй правил)"
+    severity: high
+    action: block
+    applies_to: [input]
+    tags: [prompt_injection, instruction_override]
+    reason: "Attempt to override previous or system instructions."
+  - rule_id: pi_reveal_system_prompt
+    enabled: true
+    detector_type: prompt_injection
+    pattern: "(reveal|show|print|dump|покажи|раскрой|выведи).{0,80}(system prompt|developer message|hidden policy|системн(ый|ого) промпт|скрыт.*инструк)"
+    severity: high
+    action: block
+    applies_to: [input]
+    tags: [prompt_injection, system_prompt_extraction]
+    reason: "Request to reveal hidden system/developer instructions."
+  - rule_id: pi_role_override
+    enabled: true
+    detector_type: prompt_injection
+    pattern: "(role\\s*:\\s*system|<\\s*system\\s*>|ты теперь system|act as system|developer mode)"
+    severity: high
+    action: block
+    applies_to: [input]
+    tags: [prompt_injection, role_override]
+  - rule_id: pi_jailbreak_framing
+    enabled: true
+    detector_type: prompt_injection
+    pattern: "(jailbreak|dan mode|developer mode|обойди огранич|bypass policy|обход политик)"
+    severity: medium
+    action: block
+    applies_to: [input]
+    tags: [prompt_injection, jailbreak]
+  - rule_id: pi_tool_rag_injection
+    enabled: true
+    detector_type: prompt_injection
+    pattern: "(ignore retrieved context|ignore tool instructions|инструкции из rag|подмени контекст|tool call)"
+    severity: medium
+    action: block
+    applies_to: [input]
+    tags: [prompt_injection, tool_injection, rag]
+  - rule_id: pi_format_breaking
+    enabled: true
+    detector_type: prompt_injection
+    pattern: "(ignore json schema|не соблюдай json|break format|выведи не json)"
+    severity: medium
+    action: block
+    applies_to: [input]
+    tags: [prompt_injection, format_breaking]
+  - rule_id: pi_policy_bypass
+    enabled: true
+    detector_type: prompt_injection
+    pattern: "(policy bypass|disable safety|отключи безопасность|не применяй правила)"
+    severity: high
+    action: block
+    applies_to: [input]
+    tags: [prompt_injection, policy_bypass]

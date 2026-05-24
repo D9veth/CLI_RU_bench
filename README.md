@@ -5,7 +5,7 @@
 ## Возможности
 
 - запуск benchmark-а на локальном или удаленном OpenAI-compatible API;
-- профили защиты D0-D3: baseline, system prompt, prefilter/wrapping, postfilter;
+- профили защиты D0-D3: baseline, system prompt, normalization, prompt-injection policy, DLP, schema validation, prefilter/wrapping, postfilter;
 - safety и utility датасеты в YAML/JSONL;
 - сохранение case-level артефактов каждого запуска;
 - агрегация run directories в results matrix;
@@ -44,7 +44,7 @@ bench --help
 
 ## Frontend веб-приложения
 
-React/Vite dashboard находится в [frontend/README.md](frontend/README.md). Общая архитектура описана в [docs/WEB_APP.md](docs/WEB_APP.md).
+React/Vite dashboard находится в [frontend/README.md](frontend/README.md).
 
 ```bash
 cd frontend
@@ -52,6 +52,8 @@ npm install
 npm run dev
 npm run build
 ```
+
+Для локального домена используется `http://llmtest.local:5173`; backend API ожидается на `http://llmtest.local:8000`.
 
 ## Проверка Датасета
 
@@ -62,6 +64,21 @@ bench validate-dataset \
 ```
 
 Команда проверяет базовую схему: `id`, `type`, `messages`, роли сообщений, уникальность идентификаторов, обязательные поля utility-кейсов и предупреждения по `category`/`family_id`.
+
+Regression smoke:
+
+```bash
+bench validate-dataset --in data/regression/smoke_50.jsonl
+scripts/run_regression_smoke.sh
+```
+
+## Manual evaluator audit
+
+```bash
+bench audit sample --runs-dir results --out manual_audit/evaluator_audit_v1 --n 250 --seed 42
+bench audit validate --annotations manual_audit/evaluator_audit_v1/audit_sample_blind_filled.csv --manifest manual_audit/evaluator_audit_v1/audit_manifest.json
+bench audit score --annotations manual_audit/evaluator_audit_v1/audit_sample_blind_filled.csv --manifest manual_audit/evaluator_audit_v1/audit_manifest.json --out manual_audit/evaluator_audit_v1/scored --bootstrap 2000
+```
 
 ## Проверка Подключения К Модели
 
@@ -89,6 +106,36 @@ bench run \
 - `report.md` - человекочитаемый отчет.
 
 Небольшой пример такой структуры лежит в [examples/minimal_result](examples/minimal_result/README.md).
+
+## Backend/frontend и Docker
+
+```bash
+cd backend
+python -m pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver
+
+cd ../frontend
+npm ci
+npm run dev
+npm run build
+```
+
+Docker compose:
+
+```bash
+cp .env.example .env
+docker compose build
+docker compose up -d
+docker compose ps
+```
+
+Тесты и clean release archive:
+
+```bash
+make test
+make clean-release
+```
 
 ## Воспроизведение Полной Матрицы
 

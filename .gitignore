@@ -11,6 +11,7 @@ dist/
 # Virtual environments and local secrets
 .venv/
 venv/
+backend/.venv/
 .env
 .env.*
 !.env.example
@@ -39,6 +40,9 @@ __MACOSX/
 # Local benchmark caches and temporary outputs
 .bench_cache/
 tmp/
+dist_release/
+*.log
+logs/
 
 # Ad-hoc experiment artifacts and generated analysis outputs
 runs/

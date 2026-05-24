@@ -35,7 +35,7 @@ python manage.py createsuperuser
 ## Запуск сервера
 
 ```bash
-python manage.py runserver
+python manage.py runserver llmtest.local:8000
 ```
 
 ## Запуск тестов

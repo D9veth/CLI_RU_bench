@@ -64,6 +64,48 @@ class FilterConfig(StrictBaseModel):
     case_sensitive: bool = False
 
 
+class NormalizationConfig(StrictBaseModel):
+    enabled: bool = True
+    strip_zero_width: bool = True
+    normalize_homoglyphs: bool = True
+    normalize_spacing: bool = True
+    deobfuscate_separators: bool = True
+    normalize_emoji: bool = True
+
+
+class DLPStageConfig(StrictBaseModel):
+    action: str = "audit"
+    severity_threshold: str = "low"
+
+
+class DLPConfig(StrictBaseModel):
+    enabled: bool = False
+    input: DLPStageConfig = Field(default_factory=lambda: DLPStageConfig(action="audit"))
+    output: DLPStageConfig = Field(default_factory=lambda: DLPStageConfig(action="redact"))
+    store_raw_findings: bool = False
+
+
+class SchemaValidationConfig(StrictBaseModel):
+    enabled: bool = False
+    stage: str = "output"
+    action: str = "mark_error"
+    retry_on_violation: bool = False
+    max_retries: int = 0
+
+
+class PolicyConfig(StrictBaseModel):
+    enabled: bool = False
+    rules_paths: List[str] = Field(default_factory=lambda: ["policies/rules/ru_guardrails.yaml"])
+    engine: str = "local"
+    opa_url: Optional[str] = None
+
+
+class DuringGuardConfig(StrictBaseModel):
+    enabled: bool = False
+    mode: str = "streaming"
+    action: str = "stop_and_refuse"
+
+
 class DefenseConfig(StrictBaseModel):
     profile: str = "D0"
     system_prompt_path: Optional[str] = None
@@ -84,6 +126,11 @@ class DefenseConfig(StrictBaseModel):
     refusal_template_path: Optional[str] = None
     refusal_template_text: Optional[str] = None
     json_schema_path: Optional[str] = None
+    normalization: NormalizationConfig = Field(default_factory=NormalizationConfig)
+    dlp: DLPConfig = Field(default_factory=DLPConfig)
+    schema_validation: SchemaValidationConfig = Field(default_factory=SchemaValidationConfig)
+    policy: PolicyConfig = Field(default_factory=PolicyConfig)
+    during_guard: DuringGuardConfig = Field(default_factory=DuringGuardConfig)
     tags: Dict[str, Any] = Field(default_factory=dict)
     notes: Optional[str] = None
 
@@ -116,6 +163,7 @@ class RunSection(StrictBaseModel):
     repeats: int = 1
     use_cache: bool = False
     cache_dir: Optional[str] = None
+    execution_mode: str = "sequential"
 
 
 class RunConfig(StrictBaseModel):

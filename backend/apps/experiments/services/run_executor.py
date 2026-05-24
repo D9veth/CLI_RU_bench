@@ -2,8 +2,10 @@ import json
 import subprocess
 import threading
 import traceback
+import uuid
 from pathlib import Path
 
+from django.conf import settings
 from django.db import close_old_connections
 from django.utils import timezone
 
@@ -55,7 +57,7 @@ def execute_run(run_id: int) -> None:
         "dataset",
         "defense_profile",
     ).get(pk=run_id)
-    if run.status != BenchmarkRun.Status.PENDING:
+    if run.status not in {BenchmarkRun.Status.PENDING, BenchmarkRun.Status.QUEUED}:
         return
 
     output_dir = get_run_output_dir(run)
@@ -107,6 +109,14 @@ def execute_run(run_id: int) -> None:
 
 
 def start_run_async(run_id: int) -> None:
+    if getattr(settings, "BENCHMARK_RUN_MODE", "inline") == "worker":
+        job_id = f"dbq-{uuid.uuid4().hex}"
+        BenchmarkRun.objects.filter(pk=run_id, status=BenchmarkRun.Status.PENDING).update(
+            status=BenchmarkRun.Status.QUEUED,
+            worker_job_id=job_id,
+            updated_at=timezone.now(),
+        )
+        return
     thread = threading.Thread(target=execute_run, args=(run_id,), daemon=True)
     thread.start()
 

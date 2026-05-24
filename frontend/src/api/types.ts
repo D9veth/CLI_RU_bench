@@ -241,6 +241,93 @@ export interface HeatmapResponse {
   values: Array<Array<number | null>>;
 }
 
+export interface CompareRunInfo {
+  id: number;
+  run_id: string;
+  title: string;
+  model: string;
+  model_endpoint?: number;
+  dataset: string;
+  dataset_id?: number;
+  profile: string;
+  defense_profile?: number;
+  status: RunStatus;
+  created_at?: string;
+  finished_at: string | null;
+}
+
+export interface CompareMetric {
+  key: string;
+  label: string;
+  value_a: number | null;
+  value_b: number | null;
+  delta: number | null;
+  better: "a" | "b" | "equal" | null;
+  direction: "lower" | "higher" | "neutral";
+}
+
+export interface CompareWarning {
+  code: string;
+  message: string;
+}
+
+export interface CategoryBreakdown {
+  category: string;
+  proxy_asr_a: number | null;
+  proxy_asr_b: number | null;
+  delta: number | null;
+  better: "a" | "b" | "equal" | null;
+}
+
+export interface DifferentCase {
+  case_id: string;
+  category: string;
+  result_a: string;
+  result_b: string;
+  better: "a" | "b" | "equal" | null;
+  difference?: string;
+}
+
+export interface CompareResponse {
+  run_a: CompareRunInfo;
+  run_b: CompareRunInfo;
+  model_a?: string;
+  model_b?: string;
+  dataset_a?: string;
+  dataset_b?: string;
+  defense_profile_a?: string;
+  defense_profile_b?: string;
+  metrics: CompareMetric[];
+  warnings: CompareWarning[];
+  category_breakdown: CategoryBreakdown[];
+  top_different_cases: DifferentCase[];
+}
+
+export interface CompareOptionRun {
+  id: number;
+  run_id: string;
+  title: string;
+  model: string;
+  dataset: string;
+  dataset_id: number;
+  profile: string;
+  defense_profile_id: number;
+  status: RunStatus;
+  finished_at: string | null;
+  label: string;
+  has_metrics: boolean;
+}
+
+export interface CompareOptionsResponse {
+  runs: CompareOptionRun[];
+  groups: Array<{
+    model: string;
+    dataset: string;
+    profile: string;
+    runs: CompareOptionRun[];
+  }>;
+}
+
 export interface TokenPair {
   access: string;
   refresh: string;

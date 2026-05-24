@@ -8,8 +8,10 @@ from apps.experiments.views import (
     ParetoResultsView,
     ResultsView,
     RunCasesView,
+    RunDLPFindingsView,
     RunIngestView,
     RunMetricsByRunView,
+    RunPolicyDecisionsView,
     RunMetricsViewSet,
     RunReportView,
 )
@@ -28,5 +30,7 @@ urlpatterns = [
     path("runs/<int:pk>/metrics/", RunMetricsByRunView.as_view(), name="run-metrics-detail"),
     path("runs/<int:pk>/report/", RunReportView.as_view(), name="run-report"),
     path("runs/<int:pk>/cases/", RunCasesView.as_view(), name="run-cases"),
+    path("runs/<int:pk>/dlp-findings/", RunDLPFindingsView.as_view(), name="run-dlp-findings"),
+    path("runs/<int:pk>/policy-decisions/", RunPolicyDecisionsView.as_view(), name="run-policy-decisions"),
     path("", include(router.urls)),
 ]

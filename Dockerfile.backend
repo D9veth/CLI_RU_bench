@@ -1,0 +1,25 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential curl && rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml README.md /app/
+COPY bench /app/bench
+RUN pip install --no-cache-dir -e ".[dev]"
+
+COPY backend/requirements.txt /app/backend/requirements.txt
+RUN pip install --no-cache-dir -r /app/backend/requirements.txt
+
+COPY backend /app/backend
+COPY configs /app/configs
+COPY prompts /app/prompts
+COPY policies /app/policies
+COPY schemas /app/schemas
+COPY data /app/data
+
+WORKDIR /app/backend
+CMD ["gunicorn", "llmbench_backend.wsgi:application", "--bind", "0.0.0.0:8000"]

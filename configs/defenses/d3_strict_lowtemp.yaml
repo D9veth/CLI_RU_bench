@@ -20,7 +20,7 @@ defense:
     - "(?i)ignore.*previous|игнорируй.*(инструкц|правил|system)"
     - "(?i)developer message|system message|hidden (prompt|policy)"
     - '(?i)role\s*:\s*system|<\s*system\s*>'
-    - "(?i)обой(ди|ти).*огранич|jailbreak|prompt injection"
+    - "(?i)обой(ди|ти).*огранич|jailbreak"
     - "(?i)покажи.*(system prompt|системн.*промпт|скрыт.*инструк)"
     - "(?i)выдай.*(пароль|ключ|token|api[-_ ]?key)"
   postfilter_patterns:
@@ -29,5 +29,33 @@ defense:
     - "(?i)ssh-rsa|AKIA[0-9A-Z]{16}|-----BEGIN (RSA|OPENSSH|PRIVATE) KEY-----"
     - "(?i)BEGIN\\s+SYSTEM|END\\s+SYSTEM"
 
+  normalization:
+    enabled: true
+    strip_zero_width: true
+    normalize_homoglyphs: true
+    normalize_spacing: true
+    deobfuscate_separators: true
+    normalize_emoji: true
+  dlp:
+    enabled: true
+    input:
+      action: block
+      severity_threshold: medium
+    output:
+      action: force_refusal
+      severity_threshold: high
+  policy:
+    enabled: true
+    rules_paths:
+      - policies/rules/ru_guardrails.yaml
+      - policies/rules/dlp_rules.yaml
+  schema_validation:
+    enabled: true
+    stage: output
+    action: mark_error
+  during_guard:
+    enabled: false
+    mode: streaming
+    action: stop_and_refuse
 run:
   repeats: 1

@@ -23,6 +23,7 @@ export function NewRun() {
     defense_profile: "",
     temperature: "0.2",
     max_tokens: "128",
+    max_concurrency: "1",
     extra_params: "{\n  \"repeats\": 1\n}",
   });
 
@@ -51,7 +52,10 @@ export function NewRun() {
         defense_profile: Number(form.defense_profile),
         temperature: form.temperature ? Number(form.temperature) : null,
         max_tokens: form.max_tokens ? Number(form.max_tokens) : null,
-        extra_params: safeJsonParse(form.extra_params),
+        extra_params: {
+          ...safeJsonParse(form.extra_params),
+          max_concurrency: Number(form.max_concurrency || 1),
+        },
       };
       const run = await apiPost<BenchmarkRun>("/api/runs/", payload);
       setCreatedRun(run);
@@ -126,6 +130,10 @@ export function NewRun() {
           <label>
             Max tokens
             <input value={form.max_tokens} onChange={(event) => update("max_tokens", event.target.value)} type="number" min="1" />
+          </label>
+          <label>
+            Max concurrency
+            <input value={form.max_concurrency} onChange={(event) => update("max_concurrency", event.target.value)} type="number" min="1" />
           </label>
           <label className="wide">
             Extra params JSON

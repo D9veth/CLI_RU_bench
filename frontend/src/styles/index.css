@@ -631,6 +631,131 @@ textarea:focus {
   margin: 0;
 }
 
+.warning-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  color: #713f12;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+}
+
+.warning-note strong,
+.warning-note p {
+  margin: 0;
+}
+
+.warning-note p {
+  margin-top: 6px;
+}
+
+.compare-selection {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) auto;
+  gap: 14px;
+  align-items: end;
+}
+
+.compare-selection label {
+  display: grid;
+  gap: 7px;
+  color: #475569;
+  font-weight: 700;
+}
+
+.compare-selection__actions,
+.actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.compare-selection__meta {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  color: var(--slate);
+  font-size: 13px;
+}
+
+.compare-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.compare-card {
+  display: grid;
+  gap: 16px;
+  min-height: 170px;
+  padding: 18px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.compare-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.compare-card dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.compare-card dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.compare-card dt {
+  color: var(--slate);
+  font-weight: 700;
+}
+
+.compare-card dd {
+  margin: 0;
+  font-weight: 800;
+}
+
+.winner-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  color: #475569;
+  background: #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.winner-a {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.winner-b {
+  color: #9a3412;
+  background: #ffedd5;
+}
+
+.winner-equal {
+  color: #475569;
+  background: #e2e8f0;
+}
+
 .form-panel {
   max-width: 960px;
 }
@@ -884,6 +1009,7 @@ textarea:focus {
   }
 
   .metric-grid,
+  .compare-card-grid,
   .dashboard-grid,
   .analytics-grid,
   .details-grid,
@@ -895,6 +1021,10 @@ textarea:focus {
 }
 
 @media (max-width: 640px) {
+  .compare-selection {
+    grid-template-columns: 1fr;
+  }
+
   .form-grid.two-columns,
   .definition-list {
     grid-template-columns: 1fr;

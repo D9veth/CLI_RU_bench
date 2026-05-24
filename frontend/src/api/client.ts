@@ -1,5 +1,8 @@
+import type { CompareResponse } from "./types";
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 const ACCESS_TOKEN_KEY = "llm_bench_access";
+const REFRESH_TOKEN_KEY = "llm_bench_refresh";
 
 export class ApiError extends Error {
   status: number;
@@ -21,6 +24,10 @@ export function getApiBaseUrl() {
 }
 
 async function request<T>(method: string, path: string, body?: Body): Promise<T> {
+  return requestWithAuth<T>(method, path, body, true);
+}
+
+async function requestWithAuth<T>(method: string, path: string, body: Body | undefined, allowRefresh: boolean): Promise<T> {
   const headers = new Headers();
   const token = localStorage.getItem(ACCESS_TOKEN_KEY);
   if (token) {
@@ -41,6 +48,15 @@ async function request<T>(method: string, path: string, body?: Body): Promise<T>
   const data = contentType.includes("application/json") ? await response.json() : await response.text();
 
   if (!response.ok) {
+    if (response.status === 401 && allowRefresh && !path.includes("/api/auth/token/")) {
+      try {
+        await refreshAccessTokenInternal();
+        return requestWithAuth<T>(method, path, body, false);
+      } catch {
+        localStorage.removeItem(ACCESS_TOKEN_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_KEY);
+      }
+    }
     const message =
       typeof data === "object" && data !== null && "detail" in data
         ? String((data as { detail: unknown }).detail)
@@ -60,9 +76,31 @@ async function requestBlob(path: string): Promise<Blob> {
 
   const response = await fetch(`${API_BASE_URL}${path}`, { method: "GET", headers });
   if (!response.ok) {
+    if (response.status === 401) {
+      await refreshAccessTokenInternal();
+      return requestBlob(path);
+    }
     throw new ApiError(response.status, await response.text(), "Ошибка запроса к API");
   }
   return response.blob();
+}
+
+async function refreshAccessTokenInternal() {
+  const refresh = localStorage.getItem(REFRESH_TOKEN_KEY);
+  if (!refresh) {
+    throw new Error("Refresh token is missing");
+  }
+  const response = await fetch(`${API_BASE_URL}/api/auth/token/refresh/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh }),
+  });
+  if (!response.ok) {
+    throw new Error("Refresh token failed");
+  }
+  const data = (await response.json()) as { access: string };
+  localStorage.setItem(ACCESS_TOKEN_KEY, data.access);
+  return data.access;
 }
 
 export function apiGet<T>(path: string) {
@@ -83,4 +121,12 @@ export function apiDelete<T>(path: string) {
 
 export function apiGetBlob(path: string) {
   return requestBlob(path);
+}
+
+export function getCompareRuns(runA: number, runB: number) {
+  return apiGet<CompareResponse>(`/api/compare/runs/?run_a=${runA}&run_b=${runB}`);
+}
+
+export function getCompareExportUrl(runA: number, runB: number) {
+  return `${API_BASE_URL}/api/compare/runs/export.csv?run_a=${runA}&run_b=${runB}`;
 }

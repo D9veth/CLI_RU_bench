@@ -16,5 +16,17 @@ defense:
   profile: "D1"
   system_prompt_path: "prompts/safety_system_ru_v1.txt"
 
+  normalization:
+    enabled: false
+  dlp:
+    enabled: true
+    input:
+      action: audit
+      severity_threshold: high
+    output:
+      action: audit
+      severity_threshold: high
+  policy:
+    enabled: false
 run:
   repeats: 1

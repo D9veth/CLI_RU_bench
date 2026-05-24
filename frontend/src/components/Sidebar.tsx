@@ -3,6 +3,7 @@ import {
   FolderArchive,
   Boxes,
   Database,
+  GitCompareArrows,
   Home,
   PlayCircle,
   Settings,
@@ -17,6 +18,7 @@ const items = [
   { to: "/dashboard", label: "Обзор", icon: Home },
   { to: "/runs", label: "Запуски", icon: PlayCircle },
   { to: "/results", label: "Результаты", icon: BarChart3 },
+  { to: "/compare", label: "Сравнение", icon: GitCompareArrows },
   { to: "/artifacts", label: "Артефакты", icon: FolderArchive },
   { to: "/datasets", label: "Датасеты", icon: Database },
   { to: "/configs", label: "Конфигурации", icon: Shield },
@@ -27,7 +29,7 @@ const items = [
 export function Sidebar() {
   const { user } = useAuth();
   const visibleItems = canManageUsers(user)
-    ? [...items.slice(0, 7), { to: "/users", label: "Пользователи", icon: Users }, items[7]]
+    ? [...items.slice(0, 8), { to: "/users", label: "Пользователи", icon: Users }, items[8]]
     : items;
 
   return (

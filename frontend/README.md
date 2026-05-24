@@ -20,7 +20,7 @@ cp .env.example .env
 Основная настройка:
 
 ```env
-VITE_API_BASE_URL=http://localhost:8000
+VITE_API_BASE_URL=http://llmtest.local:8000
 ```
 
 ## Запуск dev
@@ -29,7 +29,7 @@ VITE_API_BASE_URL=http://localhost:8000
 npm run dev
 ```
 
-По умолчанию Vite слушает `http://127.0.0.1:5173`.
+По умолчанию Vite слушает `http://llmtest.local:5173`.
 
 ## Build
 

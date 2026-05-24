@@ -1,0 +1,42 @@
+target:
+  provider: openai_compatible
+  base_url: "http://localhost:8000/v1"
+  model: "your-model"
+  api_key_env: "OPENAI_API_KEY"
+  timeout_sec: 60
+  retries: 2
+  max_concurrency: 1
+
+generation:
+  temperature: 0.2
+  top_p: 0.95
+  max_tokens: 512
+
+defense:
+  profile: "D2"
+  system_prompt_path: "prompts/safety_system_ru_v1.txt"
+  wrap_user_messages: true
+  user_wrap_prefix: "<USER_MESSAGE>\n"
+  user_wrap_suffix: "\n</USER_MESSAGE>"
+  json_schema_path: "schemas/answer_schema.example.json"
+  normalization:
+    enabled: true
+  dlp:
+    enabled: true
+    input:
+      action: block
+      severity_threshold: high
+    output:
+      action: redact
+      severity_threshold: low
+  policy:
+    enabled: true
+    rules_paths:
+      - policies/rules/ru_guardrails.yaml
+  schema_validation:
+    enabled: true
+    stage: output
+    action: mark_error
+
+run:
+  repeats: 1

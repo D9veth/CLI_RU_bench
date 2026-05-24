@@ -3,10 +3,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import re
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from bench.core.config import FilterConfig, RunConfig
 from bench.core.dataset import Case
+from bench.core.normalization import NormalizedText, normalize_text
+from bench.core.paths import find_repo_root, resolve_config_path
+from bench.core.policy_engine import LocalPolicyEngine
+from bench.core.prompt_injection import InjectionFinding, PromptInjectionDetector
+from bench.core.schema_validation import SchemaValidator
 
 
 _PROFILE_LEVELS = {
@@ -25,6 +30,7 @@ class FilterResult:
     stage: str
     matched_pattern: Optional[str] = None
     action_taken: Optional[str] = None
+    findings: Optional[List[Dict[str, Any]]] = None
 
 
 @dataclass
@@ -41,6 +47,7 @@ class DefensePipeline:
         self.profile = (self.cfg.profile or "D0").upper()
         self.profile_level = _PROFILE_LEVELS.get(self.profile, 0)
         self.base_dir = run_cfg.source_dir
+        self.repo_root = find_repo_root(self.base_dir)
 
         self._system_prompt_text = self._load_text(self.cfg.system_prompt_path, self.cfg.system_prompt_text)
         self._refusal_template_text = self._load_text(
@@ -49,6 +56,12 @@ class DefensePipeline:
         self._wrap_template_text = self._load_text(self.cfg.wrap_template_path, self.cfg.wrap_template_text)
         self._prefilter = self._compile_filter(self.cfg.prefilter, stage="prefilter")
         self._postfilter = self._compile_filter(self.cfg.postfilter, stage="postfilter")
+        self._policy_engine = self._build_policy_engine()
+        self._prompt_detector = PromptInjectionDetector(self._policy_engine, self.cfg.normalization)
+        self._schema_validator = SchemaValidator(
+            self.cfg.json_schema_path if self.cfg.schema_validation.enabled else None,
+            config_dir=self.base_dir,
+        )
 
     def effective_stages(self) -> List[str]:
         stages: List[str] = [self.profile]
@@ -78,11 +91,11 @@ class DefensePipeline:
 
     @property
     def prefilter_enabled(self) -> bool:
-        return self.profile_level >= 2 and self._prefilter is not None
+        return self._prefilter is not None or self.cfg.policy.enabled
 
     @property
     def postfilter_enabled(self) -> bool:
-        return self.profile_level >= 3 and self._postfilter is not None
+        return self._postfilter is not None
 
     @property
     def refusal_template(self) -> str:
@@ -102,17 +115,59 @@ class DefensePipeline:
 
     def prefilter(self, case: Case, messages: List[Dict[str, str]]) -> FilterResult:
         del case  # reserved for future per-case rules
-        if not self.prefilter_enabled or self._prefilter is None:
+        if not self.prefilter_enabled:
             return FilterResult(hit=False, stage="prefilter")
         # Inspect only user messages to avoid false hits on system hardening text itself.
         text = "\n".join(m.get("content", "") for m in messages if m.get("role") == "user")
-        return self._run_filter(self._prefilter, text)
+        normalized = self.normalize(text)
+        findings = self.detect_prompt_injection(text, normalized.normalized)
+        blocking = [finding for finding in findings if finding.action in {"block", "force_refusal"}]
+        if blocking:
+            first = blocking[0]
+            return FilterResult(
+                hit=True,
+                stage="prefilter",
+                matched_pattern=first.matched_rule_id,
+                action_taken="blocked" if first.action == "block" else "forced_refusal",
+                findings=[finding.to_dict() for finding in findings],
+            )
+        if self._prefilter is None:
+            return FilterResult(
+                hit=bool(findings),
+                stage="prefilter",
+                action_taken="audited" if findings else None,
+                findings=[finding.to_dict() for finding in findings],
+            )
+        result = self._run_filter(self._prefilter, normalized.normalized)
+        if findings:
+            result.findings = [finding.to_dict() for finding in findings]
+        return result
 
     def postfilter(self, case: Case, model_text: str) -> FilterResult:
         del case  # reserved for future per-case rules
         if not self.postfilter_enabled or self._postfilter is None:
             return FilterResult(hit=False, stage="postfilter")
         return self._run_filter(self._postfilter, model_text or "")
+
+    def normalize(self, text: str) -> NormalizedText:
+        return normalize_text(text, self.cfg.normalization)
+
+    def detect_prompt_injection(self, raw_text: str, normalized_text: str | None = None) -> List[InjectionFinding]:
+        if not self.cfg.policy.enabled:
+            return []
+        return self._prompt_detector.detect(raw_text, normalized_text)
+
+    @property
+    def schema_validator(self) -> SchemaValidator:
+        return self._schema_validator
+
+    def policy_metadata(self) -> Dict[str, Any]:
+        return {
+            "enabled": self.cfg.policy.enabled,
+            "version": self._policy_engine.version,
+            "hash": self._policy_engine.rules_hash,
+            "engine": "local",
+        }
 
     def _wrap_user_content(self, content: str) -> str:
         if self._wrap_template_text:
@@ -135,9 +190,18 @@ class DefensePipeline:
         if not path_value:
             return None
         p = Path(path_value)
-        if not p.is_absolute():
-            p = self.base_dir / p
+        p = resolve_config_path(
+            p,
+            config_dir=self.base_dir,
+            repo_root=self.repo_root,
+            label="defense text path",
+        )
         return p.read_text(encoding="utf-8")
+
+    def _build_policy_engine(self) -> LocalPolicyEngine:
+        if not self.cfg.policy.enabled:
+            return LocalPolicyEngine([])
+        return LocalPolicyEngine.from_paths(self.cfg.policy.rules_paths, config_dir=self.base_dir)
 
     def _compile_filter(self, cfg: Optional[FilterConfig], stage: str) -> Optional[_CompiledFilter]:
         if cfg is None or not cfg.enabled or not cfg.patterns:
@@ -171,4 +235,3 @@ class DefensePipeline:
         if action_norm == "redact":
             return "redacted"
         return "forced_refusal"
-

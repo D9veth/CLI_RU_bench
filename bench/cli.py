@@ -8,6 +8,7 @@ import typer
 from bench.core.config import RunConfig
 from bench.core.dataset import load_dataset
 from bench.core.dataset_validate import validate_dataset_file
+from bench.core.manual_audit import create_audit_sample, score_annotations, validate_annotations
 from bench.core.model.factory import build_client
 from bench.core.preflight import run_preflight
 from bench.core.runner import run_benchmark
@@ -23,6 +24,133 @@ from bench.core.storage import (
 )
 
 app = typer.Typer(add_completion=False, help="LLM defense benchmark CLI (MVP).")
+audit_app = typer.Typer(help="Manual evaluator audit workflow.")
+app.add_typer(audit_app, name="audit")
+
+
+@audit_app.command("sample")
+def audit_sample_cmd(
+    cases_file: Optional[list[Path]] = typer.Option(
+        None,
+        "--cases-file",
+        exists=True,
+        readable=True,
+        help="Case-level JSONL file. Can be passed multiple times.",
+    ),
+    runs_dir: Optional[Path] = typer.Option(
+        None,
+        "--runs-dir",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        help="Directory with benchmark run artifacts.",
+    ),
+    out: Path = typer.Option(..., "--out", help="Output directory for manual audit artifacts."),
+    glob_pattern: str = typer.Option("**/cases.jsonl", "--glob", help="Glob used under --runs-dir."),
+    n: int = typer.Option(250, "--n", min=1, help="Total sample size when per-bucket sizes are omitted."),
+    attack_n: Optional[int] = typer.Option(None, "--attack-n", min=0, help="Number of attack samples."),
+    benign_n: Optional[int] = typer.Option(None, "--benign-n", min=0, help="Number of benign samples."),
+    borderline_n: Optional[int] = typer.Option(None, "--borderline-n", min=0, help="Number of borderline samples."),
+    seed: int = typer.Option(42, "--seed", help="Deterministic sampling seed."),
+    redact_secrets: bool = typer.Option(
+        True,
+        "--redact-secrets/--no-redact-secrets",
+        help="Redact secret-like strings before writing annotation CSV.",
+    ),
+    max_output_chars: int = typer.Option(6000, "--max-output-chars", min=1, help="Output text truncation limit."),
+    max_prompt_chars: int = typer.Option(4000, "--max-prompt-chars", min=1, help="Prompt text truncation limit."),
+    include_utility: bool = typer.Option(
+        False,
+        "--include-utility/--exclude-utility",
+        help="Include utility cases in addition to safety cases.",
+    ),
+    balanced_by: str = typer.Option(
+        "category,defense_profile,model",
+        "--balanced-by",
+        help="Comma-separated fields used for best-effort stratification.",
+    ),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Allow writing into a non-empty output directory."),
+):
+    """Create a blind CSV sample for manual evaluator annotation."""
+    try:
+        result = create_audit_sample(
+            cases_files=cases_file,
+            runs_dir=runs_dir,
+            out_dir=out,
+            glob_pattern=glob_pattern,
+            n=n,
+            attack_n=attack_n,
+            benign_n=benign_n,
+            borderline_n=borderline_n,
+            seed=seed,
+            redact_secrets=redact_secrets,
+            max_output_chars=max_output_chars,
+            max_prompt_chars=max_prompt_chars,
+            include_utility=include_utility,
+            balanced_by=balanced_by,
+            overwrite=overwrite,
+        )
+    except Exception as exc:
+        typer.secho(f"Audit sample failed: {exc}", fg=typer.colors.RED)
+        raise typer.Exit(code=2)
+    typer.echo(json.dumps(result, ensure_ascii=False, indent=2))
+
+
+@audit_app.command("validate")
+def audit_validate_cmd(
+    annotations: Path = typer.Option(..., "--annotations", exists=True, readable=True, help="Filled annotation CSV."),
+    manifest: Path = typer.Option(..., "--manifest", exists=True, readable=True, help="audit_manifest.json."),
+    allow_missing: bool = typer.Option(False, "--allow-missing", help="Treat missing labels as warnings."),
+):
+    """Validate a filled manual annotation CSV."""
+    result = validate_annotations(
+        annotations_path=annotations,
+        manifest_path=manifest,
+        allow_missing=allow_missing,
+    )
+    typer.echo(json.dumps(result, ensure_ascii=False, indent=2))
+    raise typer.Exit(code=0 if result["ok"] else 2)
+
+
+@audit_app.command("score")
+def audit_score_cmd(
+    annotations: Path = typer.Option(..., "--annotations", exists=True, readable=True, help="Filled annotation CSV."),
+    manifest: Path = typer.Option(..., "--manifest", exists=True, readable=True, help="audit_manifest.json."),
+    out: Path = typer.Option(..., "--out", help="Output directory for scoring artifacts."),
+    exclude_ambiguous: bool = typer.Option(
+        True,
+        "--exclude-ambiguous/--include-ambiguous",
+        help="Exclude rows marked human_ambiguous=1.",
+    ),
+    bootstrap: int = typer.Option(0, "--bootstrap", min=0, help="Bootstrap iterations for 95% CI."),
+    seed: int = typer.Option(42, "--seed", help="Deterministic bootstrap seed."),
+    by: str = typer.Option("category,defense_profile,model", "--by", help="Comma-separated grouping fields."),
+    min_group_size: int = typer.Option(10, "--min-group-size", min=1, help="Minimum rows for grouped metrics."),
+    allow_missing: bool = typer.Option(False, "--allow-missing", help="Score partial annotations."),
+    positive_label: Optional[str] = typer.Option(
+        None,
+        "--positive-label",
+        help="Score only one task: attack_success|refusal|leakage|policy_violation|false_refusal.",
+    ),
+):
+    """Compare evaluator labels with human labels and write metrics/confusion matrices."""
+    try:
+        result = score_annotations(
+            annotations_path=annotations,
+            manifest_path=manifest,
+            out_dir=out,
+            exclude_ambiguous=exclude_ambiguous,
+            bootstrap=bootstrap,
+            seed=seed,
+            by=by,
+            min_group_size=min_group_size,
+            allow_missing=allow_missing,
+            positive_label=positive_label,
+        )
+    except Exception as exc:
+        typer.secho(f"Audit score failed: {exc}", fg=typer.colors.RED)
+        raise typer.Exit(code=2)
+    typer.echo(json.dumps(result, ensure_ascii=False, indent=2))
 
 
 @app.command("validate-dataset")

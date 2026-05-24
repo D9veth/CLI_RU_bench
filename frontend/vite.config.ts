@@ -4,7 +4,9 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   server: {
-    host: "127.0.0.1",
+    host: "llmtest.local",
     port: 5173,
+    strictPort: true,
+    allowedHosts: ["llmtest.local", "localhost", "127.0.0.1"],
   },
 });

@@ -22,5 +22,28 @@ defense:
     - "(?i)ssh-rsa|AKIA[0-9A-Z]{16}|-----BEGIN (RSA|OPENSSH|PRIVATE) KEY-----"
     - "(?i)BEGIN\\s+SYSTEM|END\\s+SYSTEM"
 
+  normalization:
+    enabled: true
+    strip_zero_width: true
+    normalize_homoglyphs: true
+    normalize_spacing: true
+    deobfuscate_separators: true
+    normalize_emoji: true
+  dlp:
+    enabled: true
+    input:
+      action: block
+      severity_threshold: high
+    output:
+      action: redact
+      severity_threshold: low
+  policy:
+    enabled: true
+    rules_paths:
+      - policies/rules/ru_guardrails.yaml
+  schema_validation:
+    enabled: true
+    stage: output
+    action: mark_error
 run:
   repeats: 1

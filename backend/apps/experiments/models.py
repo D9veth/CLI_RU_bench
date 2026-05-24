@@ -13,6 +13,7 @@ def generate_run_id():
 class BenchmarkRun(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
+        QUEUED = "queued", "Queued"
         RUNNING = "running", "Running"
         COMPLETED = "completed", "Completed"
         FAILED = "failed", "Failed"
@@ -51,6 +52,7 @@ class BenchmarkRun(models.Model):
     finished_at = models.DateTimeField(null=True, blank=True)
     output_dir = models.CharField(max_length=1024, blank=True)
     error_message = models.TextField(blank=True)
+    worker_job_id = models.CharField(max_length=128, blank=True)
     config_snapshot_json = models.JSONField(default=dict, blank=True)
     temperature_override = models.FloatField(null=True, blank=True)
     max_tokens_override = models.PositiveIntegerField(null=True, blank=True)

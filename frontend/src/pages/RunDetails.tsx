@@ -26,6 +26,14 @@ interface LogsResponse {
   stderr: string;
 }
 
+interface DLPFindingsResponse {
+  findings: Array<Record<string, unknown>>;
+}
+
+interface PolicyDecisionsResponse {
+  decisions: Array<Record<string, unknown>>;
+}
+
 async function nullableGet<T>(path: string): Promise<T | null> {
   try {
     return await apiGet<T>(path);
@@ -47,12 +55,14 @@ export function RunDetails() {
   const [report, setReport] = useState("");
   const [cases, setCases] = useState<Array<Record<string, unknown>>>([]);
   const [logs, setLogs] = useState<LogsResponse>({ stdout: "", stderr: "" });
+  const [dlpFindings, setDlpFindings] = useState<Array<Record<string, unknown>>>([]);
+  const [policyDecisions, setPolicyDecisions] = useState<Array<Record<string, unknown>>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   async function load() {
     if (!id) return;
-    const [runData, metricsData, artifactsData, projectArtifactsData, reportData, casesData, logsData] = await Promise.all([
+    const [runData, metricsData, artifactsData, projectArtifactsData, reportData, casesData, logsData, dlpData, policyData] = await Promise.all([
       apiGet<BenchmarkRun>(`/api/runs/${id}/`),
       nullableGet<RunMetrics>(`/api/runs/${id}/metrics/`),
       apiGet<RunArtifact[]>(`/api/runs/${id}/artifacts/`),
@@ -60,6 +70,8 @@ export function RunDetails() {
       nullableGet<ReportResponse>(`/api/runs/${id}/report/`),
       nullableGet<CasesResponse>(`/api/runs/${id}/cases/?limit=100`),
       nullableGet<LogsResponse>(`/api/runs/${id}/logs/`),
+      nullableGet<DLPFindingsResponse>(`/api/runs/${id}/dlp-findings/?limit=100`),
+      nullableGet<PolicyDecisionsResponse>(`/api/runs/${id}/policy-decisions/?limit=100`),
     ]);
     setRun(runData);
     setMetrics(metricsData ?? runData.metrics ?? null);
@@ -68,6 +80,8 @@ export function RunDetails() {
     setReport(reportData?.report ?? "");
     setCases(casesData?.cases ?? []);
     setLogs(logsData ?? { stdout: "", stderr: "" });
+    setDlpFindings(dlpData?.findings ?? []);
+    setPolicyDecisions(policyData?.decisions ?? []);
   }
 
   useEffect(() => {
@@ -222,6 +236,42 @@ export function RunDetails() {
           />
         ) : (
           <EmptyState title="Кейсы недоступны" text="cases.jsonl не найден или пока пуст." />
+        )}
+      </section>
+
+      <section className="panel">
+        <h3>DLP findings</h3>
+        {dlpFindings.length ? (
+          <DataTable
+            data={dlpFindings}
+            columns={[
+              { key: "case_id", title: "case_id", render: (row) => String(row.case_id ?? "—") },
+              { key: "type", title: "Тип", render: (row) => String(row.type ?? "—") },
+              { key: "severity", title: "Severity", render: (row) => String(row.severity ?? "—") },
+              { key: "rule", title: "Rule", render: (row) => String(row.rule_id ?? "—") },
+              { key: "evidence", title: "Evidence", render: (row) => String(row.evidence_redacted ?? "—") },
+            ]}
+          />
+        ) : (
+          <EmptyState title="DLP findings недоступны" text="Для этого нужны новые runs с включённым DLP." />
+        )}
+      </section>
+
+      <section className="panel">
+        <h3>Policy decisions</h3>
+        {policyDecisions.length ? (
+          <DataTable
+            data={policyDecisions}
+            columns={[
+              { key: "case_id", title: "case_id", render: (row) => String(row.case_id ?? "—") },
+              { key: "rule", title: "Rule", render: (row) => String(row.matched_rule_id ?? row.rule_id ?? "—") },
+              { key: "action", title: "Action", render: (row) => String(row.action ?? "—") },
+              { key: "severity", title: "Severity", render: (row) => String(row.severity ?? "—") },
+              { key: "evidence", title: "Evidence", render: (row) => String(row.evidence_redacted ?? "—") },
+            ]}
+          />
+        ) : (
+          <EmptyState title="Policy decisions недоступны" text="Для этого нужны новые runs с включённым policy-as-code." />
         )}
       </section>
 

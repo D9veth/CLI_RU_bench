@@ -1,0 +1,10 @@
+version: "2026-05-24"
+rules:
+  - rule_id: dlp_system_prompt_marker
+    enabled: true
+    detector_type: dlp
+    pattern: "BEGIN\\s+SYSTEM|END\\s+SYSTEM|system prompt|developer message|hidden policy|скрытые инструкции|системный промпт"
+    severity: high
+    action: redact
+    applies_to: [input, output, artifact]
+    tags: [dlp, leakage]
